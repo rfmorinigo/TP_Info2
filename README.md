@@ -1,10 +1,26 @@
-Trabajo practico integrador de la catedra de informatica II de la UTN FRA.
+# Sistema controlador para puente levadizo
 
-Como aun no he decidido que sistema implementar. Diseñe maquinas de estados para dos posibles proyectos. El puente levadizo y la una cinta transportadora clasificadora por colr (RGB).
-A medida que avance el proyecto y teniendo en cuenta cual de los puede aportar mayor contenido academico optare por uno de ellos.
+## Memoria descriptiva
+El sistema de control del puente levadizo simula el funcionamiento de un puente que puede elevarse y bajarse para permitir el paso de embarcaciones o vehículos. El puente tiene cuatro estados principales: espera, elevando, elevado y bajando. En el estado espera, el puente está en posición horizontal permitiendo el paso de vehículos; en el estado elevando, el puente está en proceso de levantarse; en el estado elevado, el puente está completamente levantado para el paso de embarcaciones; y en el estado bajando, el puente está en proceso de descender. La máquina de estados gestiona las transiciones entre estos estados en respuesta a las solicitudes de apertura y cierre, así como a eventos de emergencia, asegurando un funcionamiento seguro y eficiente del puente.
 
-25/08/2024
+### 1. Estado Inicial. Espera.
 
-Adjunto dos diagramas de maquinas de estado para el puente levadizo y la cinta transportadora por color.
+El puente se encuentra cerrado y los vehiculo pueden pasar sobre el. Su unica transicion posible es recibir la señal de levantamiento para empezar a elevarse. Pasando al estado "Elevando".
 
-ERROR: A ambos diagramas les falta el estado inicial. A la brevedad seran corregidos.
+### 2. Elevando
+
+El puente tras haber recibido la señal de elevacion, activa los mecanismos fisicos para elevarse hasta alcanzar la altura maxima.
+
+### 3. Elevado
+
+Una vez que se alcanzo la altura maxima, el puente se queda abierto permitiendo el paso de barcos por debajo, hasta recibir nuevamente la señal para cerrarse, y pasar al estado "bajando".
+
+### 4. Bajando
+
+Despues de haber permitido el paso por debajo, el puente comienza a cerrarse mediante activando nuevamente los mecanismos hasta alcanzar la altura minima. Una vez alcanzada la altura minima vuelve a estar en estado de espera, hasta recibir una nueva señal de levantamiento.
+
+## Maquina de estados
+
+A continuacion, se presenta un modelo de maquina de estados para el proyecto.
+
+![](./state_machine.png)
