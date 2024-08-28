@@ -1,23 +1,20 @@
 # Sistema controlador para puente levadizo
 
 ## Memoria descriptiva
-El sistema de control del puente levadizo simula el funcionamiento de un puente que puede elevarse y bajarse para permitir el paso de embarcaciones o vehículos. El puente tiene cuatro estados principales: espera, elevando, elevado y bajando. En el estado espera, el puente está en posición horizontal permitiendo el paso de vehículos; en el estado elevando, el puente está en proceso de levantarse; en el estado elevado, el puente está completamente levantado para el paso de embarcaciones; y en el estado bajando, el puente está en proceso de descender. La máquina de estados gestiona las transiciones entre estos estados en respuesta a las solicitudes de apertura y cierre, asi como detectar las alturas maxima y minima para las transiciones de los estados Elevando y Bajando.
 
-### 1. Estado Inicial. Espera.
+El sistema de control del puente levadizo simula el funcionamiento de un puente que puede elevarse y bajarse para permitir el paso de embarcaciones y vehículos. El sistema opera a través de una máquina de estados que gestiona las transiciones entre tres estados principales: Espera, Elevando, y Bajando
 
-El puente se encuentra cerrado y los vehiculos pueden pasar sobre el. Su unica transicion posible es recibir la señal de levantamiento para empezar a elevarse. Pasando al estado "Elevando".
+### Estado Inicial: Espera
 
-### 2. Elevando
+En este estado, el sistema está en reposo, a la espera de una señal para iniciar el movimiento del puente. El puente puede estar en posición horizontal (permitiendo el paso de vehículos) o en posición elevada (permitiendo el paso de embarcaciones). Dependiendo de la señal recibida, el sistema activará los mecanismos para elevar el puente (pasando al estado "Elevando") o para bajarlo (pasando al estado "Bajando").
 
-El puente tras haber recibido la señal de elevacion, activa los mecanismos fisicos para elevarse hasta alcanzar la altura maxima.
+### Elevando
 
-### 3. Elevado
+Al recibir la señal de apertura, el sistema baja las barreras de seguridad para detener el tráfico vehicular y comienza a elevar el puente. Este estado continúa hasta que el puente alcanza la altura máxima establecida. Una vez que se alcanza esta altura, el sistema queda en espera de una nueva señal, generalmente para iniciar el descenso.
 
-Una vez que se alcanzo la altura maxima, el puente se queda abierto permitiendo el paso de barcos por debajo, hasta recibir nuevamente la señal para cerrarse, y pasar al estado "bajando".
+### Bajando
 
-### 4. Bajando
-
-Despues de haber permitido el paso por debajo, el puente comienza a cerrarse mediante activando nuevamente los mecanismos hasta alcanzar la altura minima. Una vez alcanzada la altura minima vuelve a estar en estado de espera, hasta recibir una nueva señal de levantamiento.
+Tras recibir la señal de cierre, el sistema activa los mecanismos para bajar el puente de manera controlada. Las barreras de seguridad permanecen bajas durante este proceso para evitar el paso de vehículos. El estado "Bajando" se mantiene hasta que el puente alcanza la posición horizontal. Al finalizar, las barreras de seguridad se levantan, permitiendo nuevamente el paso de vehículos, y el sistema regresa al estado de "Espera".
 
 ## Maquina de estados
 
