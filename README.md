@@ -140,7 +140,6 @@ estados_t f_bajando_puente(puente_t *puente) {
 ```
 ### main.c
 ```c
-### main.c
 #include "mylib.h"
 
 int main(void) {
