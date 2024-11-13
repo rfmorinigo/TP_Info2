@@ -1,0 +1,10 @@
+{
+    "C_Cpp.errorSquiggles": "enabled",
+    "AVR.reporter.arguments": [
+        "-A"
+    ],
+    "AVR.source.compiler": "c:\\WinAVR-20100110\\avr\\bin\\gcc.exe",
+    "files.associations": {
+        "mylib.h": "c"
+    }
+}
