@@ -41,6 +41,9 @@ Se utiliza para el proyecto un microcontrolador ATMega 128, un puente H L298 par
 #include <avr_api/avr_api.h>
 #include <util/delay.h>
 
+#define ALTURA_MAX 127
+#define ALTURA_MIN 0
+
 // Definición de los estados del puente levadizo
 typedef enum {
     espera = 0,
@@ -49,21 +52,71 @@ typedef enum {
     bajando = 3
 } estados_t;
 
-// Definición de la estructura que contiene los datos del puente levadizo
-typedef struct {
-    float altura_actual;      
-    float altura_maxima;      
-    float altura_minima;   
-} puente_t;
+//prototipos estados
+estados_t *(f_espera_puente)(void);
+estados_t *(f_elevando_puente)(void);
+estados_t *(f_elevado_puente)(void);
+estados_t *(f_bajando_puente)(void);
 
-// Declaraciones de funciones
-estados_t f_espera_puente(puente_t *puente);
-estados_t f_elevado_puente(puente_t *puente);
-estados_t f_elevando_puente(puente_t *puente);
-estados_t f_bajando_puente(puente_t *puente);
+//prototipos micro
+int init_puente(void);
+void subir_barrera(void);
+int leer_switch_subir(void);
+void bajar_barrera(void);
+void activar_motor_subir(void);
+unsigned int leer_sensor(void);
+int leer_switch_bajar(void);
+void activar_motor_bajar(void);
+void apagar_motor(void);
 
 #endif
 
+```
+### estados.c
+
+```c
+#include "mylib.h"
+
+estados_t *(f_espera_puente)(void) {
+    if (leer_switch_subir()) { //revisar si el switch de "subir" está activado
+        return (estados_t *)elevando;
+    } else {
+        _delay_ms(3000);
+        return (estados_t *)espera;
+    }
+}
+
+estados_t *(f_elevando_puente)(void) {
+    int i;
+    bajar_barrera();
+    activar_motor_subir();
+    while (leer_sensor()!=ALTURA_MAX) {
+        leer_sensor();
+    }
+    return (estados_t *)elevado;
+}
+
+estados_t *(f_elevado_puente)(void) {
+
+    //revisar si el switch de "bajar" está activado
+    if ((leer_switch_subir())==1) {
+        return (estados_t *)bajando;
+    } else {
+        return (estados_t *)elevado;
+    }
+}
+
+estados_t *(f_bajando_puente)(void) {
+    int i;
+    activar_motor_bajar();
+    while (leer_sensor()!=ALTURA_MIN) {
+        leer_sensor();
+    }
+    bajar_barrera();
+    apagar_motor();
+    
+    return (estados_t *)espera;
+}
 ```
 
 ### funciones.c
@@ -71,91 +124,10 @@ estados_t f_bajando_puente(puente_t *puente);
 ```c
 #include "mylib.h"
 
-estados_t f_espera_puente(puente_t *puente) {
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_1); //encender led verde
-    if ((avr_GPIOA_IN & (1 << 0))==0) { //revisar si el switch de "subir" está activado
-        return elevando;
-    } else {
-        return espera;
-    }
-}
-
-estados_t f_elevando_puente(puente_t *puente) {
-    int i;
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_1); //apagar LED verde
-    //subir barrera
-    for (i = 0; i < 2; i++) {
-        clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
-        _delay_ms(1000); 
-        set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
-    }
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4);   //activar el motor ENA=1
-    // Rotación en dirección de elevación
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_2);   // IN1=1
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_3); //IN2=0
-
-    //simulación de elevación
-    while (puente->altura_actual < puente->altura_maxima) {
-        puente->altura_actual += 1;
-        _delay_ms(1000);
-    }
-
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4); //apagar el motor
-    return elevado;
-}
-
-estados_t f_elevado_puente(puente_t *puente) {
-
-    //revisar si el switch de "bajar" está activado
-    if ((avr_GPIOA_IN & (1 << 1))==0) {
-        return bajando;
-    } else {
-        return elevado;
-    }
-}
-
-estados_t f_bajando_puente(puente_t *puente) {
-    int i;
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4);    // Activar el motor
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_2);  // Configuración para rotación en dirección de descenso
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_3);
-
-    //simulación de descenso
-    while (puente->altura_actual > puente->altura_minima) {
-        puente->altura_actual -= 1;
-        _delay_ms(1000);
-    }
-    //bajar barrera
-    for (i = 0; i < 3; i++) {
-        clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
-        _delay_ms(1000); 
-        set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
-    }
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4);      //apagar el motor
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0); //apagar LED rojo
-    
-    return espera;
-}
-
-```
-### main.c
-```c
-#include "mylib.h"
-
-int main(void) {
-    // Declarar e inicializar la estructura del puente
-    puente_t *puente;
-    estados_t estado_actual = espera;
-
-    // Configuración inicial de los parámetros del puente
-    puente->altura_actual = 0.0;
-    puente->altura_maxima = 3.0;
-    puente->altura_minima= 0.0;
-
-    //estructura de inicialización GPIO para AVR
+int init_puente() {
     GpioInitStructure_AVR salida;
     GpioInitStructure_AVR entrada;
-
+    AdcInitStructure_AVR adc_config;
     //configuración de pines de salida para LEDs y motor
     salida.port = avr_GPIO_D;
     salida.modo = avr_GPIO_mode_Output;
@@ -172,30 +144,101 @@ int main(void) {
     entrada.pines = avr_GPIO_PIN_0 | avr_GPIO_PIN_1; //input SUBIR / BAJAR
     init_gpio(entrada);
 
-    //asegurar que el motor esté apagado al inicio
-    clear_pin(avr_GPIOD_OUT,avr_GPIO_PIN_4);
-    clear_pin(avr_GPIOD_OUT,avr_GPIO_PIN_2);
-    clear_pin(avr_GPIOD_OUT,avr_GPIO_PIN_3);
-    //switch en alto
-    set_pin(avr_GPIOA_IN,avr_GPIO_PIN_0;)
-    set_pin(avr_GPIOA_IN,avr_GPIO_PIN_1;)
+    // Configuración del ADC
+    adc_config.mode = avr_ADC_MODE_Single_Conversion; // Conversión única
+    adc_config.prescaler = avr_ADC_Prescaler_64;      // Divisor del reloj: 64
+    adc_config.channel = avr_ADC_canal0;             // Canal ADC0 (PF0)
+    adc_config.resolution = avr_ADC_RES_8Bit;       // Resolución de 8 bits
+    adc_config.reference = avr_ADC_REF_AVcc;         // Referencia AVcc
+    init_adc(adc_config);
+    // Inicializar el ADC
+    //if ( init_adc(*adc_config)!= avr_ADC_OK) {
+     //   return -1;
+    //}
+
+    REGBIT(avr_GPIOD_OUT, 1) = 1; //encender led verde
+    REGBIT(avr_GPIOA_IN,0) = 1; //pulsador de subir en alto
+    REGBIT(avr_GPIOA_IN, 1) = 1; //pulsador de bajar en alto
+    return;
+}
+
+void bajar_barrera(void) {
+    int i; 
+    _delay_ms(2000);
+    REGBIT(avr_GPIOD_OUT, 1)=0; //apagar LED verde
+    //led rojo intermitente mientras se baja la barrera
+    for (i = 0; i < 3; i++) {
+        REGBIT(avr_GPIOD_OUT, 0) = 1;
+        _delay_ms(1000); 
+        REGBIT(avr_GPIOD_OUT, 0) = 0;
+        _delay_ms(1000);
+    }
+    REGBIT(avr_GPIOD_OUT, 0) = 1; //encender LED rojo permanentemente
+}
+
+void activar_motor_subir(void) {
+    REGBIT(avr_GPIOD_OUT, 4) = 1;   //activar el motor ENA=1
+    // Rotación en dirección de elevación
+    REGBIT(avr_GPIOD_OUT, 2) = 1;   // IN1=1
+    REGBIT(avr_GPIOD_OUT, 3) = 0; //IN2=0
+}
+
+int leer_switch_subir(void) {
+    if (avr_GPIOA_IN_0 == 0) {
+        return 1;
+    } else {
+        return 0;
+    }   
+}
+
+unsigned int leer_sensor(void) {
+    _delay_ms(1000);
+      return leer_ADC(avr_ADC_canal0);
+}
+
+int leer_switch_bajar(void) {
+    if ((avr_GPIOA_IN & (1 << 1))==0) {
+        return 1;
+    } else {
+        return 0;
+    }   
+}
+
+void activar_motor_bajar(void) {
+    REGBIT(avr_GPIOD_OUT, 4) = 1;    // Activar el motor
+    REGBIT(avr_GPIOD_OUT, 2) = 0;  // Configuración para rotación en dirección de descenso
+    REGBIT(avr_GPIOD_OUT, 3) = 1;
+}
+
+void subir_barrera(void) {
+    int i; 
+
+    for (i = 0; i < 3; i++) {
+        clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
+        _delay_ms(1000); 
+        set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
+    }
+}
+
+void apagar_motor(void) {
+    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4); //apagar el motor
+}
+
+```
+### main.c
+```c
+#include "mylib.h"
+
+int main() {
+    estados_t estado_actual = espera;
+    estados_t (*vectorEstados[])(void) = {f_espera_puente, f_elevando_puente, f_elevado_puente, f_bajando_puente};
+
+    init_puente();    
 
     while (1) {
-        switch (estado_actual) {
-            case espera:
-                estado_actual = f_espera_puente(puente);
-                break;
-            case elevando:
-                estado_actual = f_elevando_puente(puente);
-                break;
-            case elevado:
-                estado_actual = f_elevado_puente(puente);
-                break;
-            case bajando:
-                estado_actual = f_bajando_puente(puente);
-                break;
-        }
+        estado_actual = vectorEstados[estado_actual]();
     }
+ return 0;
 }
 
 ```

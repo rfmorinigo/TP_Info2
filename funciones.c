@@ -32,10 +32,9 @@ int init_puente() {
      //   return -1;
     //}
 
-    
     REGBIT(avr_GPIOD_OUT, 1) = 1; //encender led verde
     REGBIT(avr_GPIOA_IN,0) = 1; //pulsador de subir en alto
-    set_pin(avr_GPIOA_IN, avr_GPIO_PIN_1); //pulsador de bajar en alto
+    REGBIT(avr_GPIOA_IN, 1) = 1; //pulsador de bajar en alto
     return;
 }
 
@@ -69,6 +68,7 @@ int leer_switch_subir(void) {
 }
 
 unsigned int leer_sensor(void) {
+    _delay_ms(1000);
       return leer_ADC(avr_ADC_canal0);
 }
 
@@ -81,9 +81,9 @@ int leer_switch_bajar(void) {
 }
 
 void activar_motor_bajar(void) {
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4);    // Activar el motor
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_2);  // Configuración para rotación en dirección de descenso
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_3);
+    REGBIT(avr_GPIOD_OUT, 4) = 1;    // Activar el motor
+    REGBIT(avr_GPIOD_OUT, 2) = 0;  // Configuración para rotación en dirección de descenso
+    REGBIT(avr_GPIOD_OUT, 3) = 1;
 }
 
 void subir_barrera(void) {
