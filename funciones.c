@@ -1,67 +1,101 @@
 #include "mylib.h"
 
-estados_t f_espera_puente(puente_t *puente) {
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_1); //encender led verde
-    if ((avr_GPIOA_IN & (1 << 0))==0) { //revisar si el switch de "subir" está activado
-        return elevando;
-    } else {
-        return espera;
-    }
+int init_puente() {
+    GpioInitStructure_AVR salida;
+    GpioInitStructure_AVR entrada;
+    AdcInitStructure_AVR adc_config;
+    //configuración de pines de salida para LEDs y motor
+    salida.port = avr_GPIO_D;
+    salida.modo = avr_GPIO_mode_Output;
+    salida.pines = avr_GPIO_PIN_0 |  // LED Rojo
+        avr_GPIO_PIN_1 |  // LED Verde
+        avr_GPIO_PIN_2 |  // Motor IN1
+        avr_GPIO_PIN_3 |  // Motor IN2
+        avr_GPIO_PIN_4;   // Motor ENA
+    init_gpio(salida);
+    
+    //condiguracion de pines de entrada para los switch
+    entrada.port = avr_GPIO_A;
+    entrada.modo = avr_GPIO_mode_Input; 
+    entrada.pines = avr_GPIO_PIN_0 | avr_GPIO_PIN_1; //input SUBIR / BAJAR
+    init_gpio(entrada);
+
+    // Configuración del ADC
+    adc_config.mode = avr_ADC_MODE_Single_Conversion; // Conversión única
+    adc_config.prescaler = avr_ADC_Prescaler_64;      // Divisor del reloj: 64
+    adc_config.channel = avr_ADC_canal0;             // Canal ADC0 (PF0)
+    adc_config.resolution = avr_ADC_RES_8Bit;       // Resolución de 8 bits
+    adc_config.reference = avr_ADC_REF_AVcc;         // Referencia AVcc
+    init_adc(adc_config);
+    // Inicializar el ADC
+    //if ( init_adc(*adc_config)!= avr_ADC_OK) {
+     //   return -1;
+    //}
+
+    
+    REGBIT(avr_GPIOD_OUT, 1) = 1; //encender led verde
+    REGBIT(avr_GPIOA_IN,0) = 1; //pulsador de subir en alto
+    set_pin(avr_GPIOA_IN, avr_GPIO_PIN_1); //pulsador de bajar en alto
+    return;
 }
 
-estados_t f_elevando_puente(puente_t *puente) {
-    int i;
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_1); //apagar LED verde
-    //subir barrera
-    for (i = 0; i < 2; i++) {
-        clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
+void bajar_barrera(void) {
+    int i; 
+    _delay_ms(2000);
+    REGBIT(avr_GPIOD_OUT, 1)=0; //apagar LED verde
+    //led rojo intermitente mientras se baja la barrera
+    for (i = 0; i < 3; i++) {
+        REGBIT(avr_GPIOD_OUT, 0) = 1;
         _delay_ms(1000); 
-        set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
-    }
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4);   //activar el motor ENA=1
-    // Rotación en dirección de elevación
-    set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_2);   // IN1=1
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_3); //IN2=0
-
-    //simulación de elevación
-    while (puente->altura_actual < puente->altura_maxima) {
-        puente->altura_actual += 1;
+        REGBIT(avr_GPIOD_OUT, 0) = 0;
         _delay_ms(1000);
     }
-
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4); //apagar el motor
-    return elevado;
+    REGBIT(avr_GPIOD_OUT, 0) = 1; //encender LED rojo permanentemente
 }
 
-estados_t f_elevado_puente(puente_t *puente) {
+void activar_motor_subir(void) {
+    REGBIT(avr_GPIOD_OUT, 4) = 1;   //activar el motor ENA=1
+    // Rotación en dirección de elevación
+    REGBIT(avr_GPIOD_OUT, 2) = 1;   // IN1=1
+    REGBIT(avr_GPIOD_OUT, 3) = 0; //IN2=0
+}
 
-    //revisar si el switch de "bajar" está activado
-    if ((avr_GPIOA_IN & (1 << 1))==0) {
-        return bajando;
+int leer_switch_subir(void) {
+    if (avr_GPIOA_IN_0 == 0) {
+        return 1;
     } else {
-        return elevado;
-    }
+        return 0;
+    }   
 }
 
-estados_t f_bajando_puente(puente_t *puente) {
-    int i;
+unsigned int leer_sensor(void) {
+      return leer_ADC(avr_ADC_canal0);
+}
+
+int leer_switch_bajar(void) {
+    if ((avr_GPIOA_IN & (1 << 1))==0) {
+        return 1;
+    } else {
+        return 0;
+    }   
+}
+
+void activar_motor_bajar(void) {
     set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4);    // Activar el motor
     clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_2);  // Configuración para rotación en dirección de descenso
     set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_3);
+}
 
-    //simulación de descenso
-    while (puente->altura_actual > puente->altura_minima) {
-        puente->altura_actual -= 1;
-        _delay_ms(1000);
-    }
-    //bajar barrera
+void subir_barrera(void) {
+    int i; 
+
     for (i = 0; i < 3; i++) {
         clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
         _delay_ms(1000); 
         set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
     }
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4);      //apagar el motor
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0); //apagar LED rojo
-    
-    return espera;
+}
+
+void apagar_motor(void) {
+    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4); //apagar el motor
 }
