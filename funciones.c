@@ -81,8 +81,9 @@ int leer_switch_bajar(void) {
 }
 
 void activar_motor_bajar(void) {
-    REGBIT(avr_GPIOD_OUT, 4) = 1;    // Activar el motor
-    REGBIT(avr_GPIOD_OUT, 2) = 0;  // Configuración para rotación en dirección de descenso
+    REGBIT(avr_GPIOD_OUT, 4) = 1;    //activar el motor
+    //configuración para rotación en dirección de descenso
+    REGBIT(avr_GPIOD_OUT, 2) = 0;  
     REGBIT(avr_GPIOD_OUT, 3) = 1;
 }
 
@@ -90,12 +91,14 @@ void subir_barrera(void) {
     int i; 
 
     for (i = 0; i < 3; i++) {
-        clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
+        REGBIT(avr_GPIOD_OUT, 0) = 1;
         _delay_ms(1000); 
-        set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
+        REGBIT(avr_GPIOD_OUT, 0) = 0;
+        _delay_ms(1000);
     }
+    REGBIT(avr_GPIOD_OUT,1) = 1;
 }
 
 void apagar_motor(void) {
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4); //apagar el motor
+    REGBIT(avr_GPIOD_OUT, 4) = 0; //apagar el motor
 }

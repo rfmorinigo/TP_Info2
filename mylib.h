@@ -7,7 +7,6 @@
 #define ALTURA_MAX 127
 #define ALTURA_MIN 0
 
-// Definición de los estados del puente levadizo
 typedef enum {
     espera = 0,
     elevando = 1,
@@ -21,7 +20,7 @@ estados_t *(f_elevando_puente)(void);
 estados_t *(f_elevado_puente)(void);
 estados_t *(f_bajando_puente)(void);
 
-//prototipos micro
+//prototipos funciones
 int init_puente(void);
 void subir_barrera(void);
 int leer_switch_subir(void);

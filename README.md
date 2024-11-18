@@ -35,6 +35,7 @@ Se utiliza para el proyecto un microcontrolador ATMega 128, un puente H L298 par
 ### mylib.h
 
 ```c
+
 #ifndef MYLIB_H
 #define MYLIB_H
 #include <avr/io.h>
@@ -44,7 +45,6 @@ Se utiliza para el proyecto un microcontrolador ATMega 128, un puente H L298 par
 #define ALTURA_MAX 127
 #define ALTURA_MIN 0
 
-// Definición de los estados del puente levadizo
 typedef enum {
     espera = 0,
     elevando = 1,
@@ -58,7 +58,7 @@ estados_t *(f_elevando_puente)(void);
 estados_t *(f_elevado_puente)(void);
 estados_t *(f_bajando_puente)(void);
 
-//prototipos micro
+//prototipos funciones
 int init_puente(void);
 void subir_barrera(void);
 int leer_switch_subir(void);
@@ -71,6 +71,7 @@ void apagar_motor(void);
 
 #endif
 
+
 ```
 ### estados.c
 
@@ -78,10 +79,10 @@ void apagar_motor(void);
 #include "mylib.h"
 
 estados_t *(f_espera_puente)(void) {
-    if (leer_switch_subir()) { //revisar si el switch de "subir" está activado
+    if (leer_switch_subir()==1) { //revisar si el switch de "subir" está activado
         return (estados_t *)elevando;
     } else {
-        _delay_ms(3000);
+        _delay_ms(1000);
         return (estados_t *)espera;
     }
 }
@@ -90,16 +91,21 @@ estados_t *(f_elevando_puente)(void) {
     int i;
     bajar_barrera();
     activar_motor_subir();
-    while (leer_sensor()!=ALTURA_MAX) {
-        leer_sensor();
+    for (i=0;i<3;i++) {
+        _delay_ms(1000);
     }
+    /*while (leer_sensor()!=ALTURA_MAX) {
+        leer_sensor();
+    }*/
+    apagar_motor();
     return (estados_t *)elevado;
+
 }
 
 estados_t *(f_elevado_puente)(void) {
 
     //revisar si el switch de "bajar" está activado
-    if ((leer_switch_subir())==1) {
+    if ((leer_switch_bajar())==1) {
         return (estados_t *)bajando;
     } else {
         return (estados_t *)elevado;
@@ -109,14 +115,18 @@ estados_t *(f_elevado_puente)(void) {
 estados_t *(f_bajando_puente)(void) {
     int i;
     activar_motor_bajar();
-    while (leer_sensor()!=ALTURA_MIN) {
-        leer_sensor();
+    for (i=0;i<3;i++) {
+        _delay_ms(1000);
     }
-    bajar_barrera();
+    /*while (leer_sensor()!=ALTURA_MIN) {
+        leer_sensor();
+    }*/
+    subir_barrera();
     apagar_motor();
     
     return (estados_t *)espera;
 }
+
 ```
 
 ### funciones.c
@@ -205,8 +215,9 @@ int leer_switch_bajar(void) {
 }
 
 void activar_motor_bajar(void) {
-    REGBIT(avr_GPIOD_OUT, 4) = 1;    // Activar el motor
-    REGBIT(avr_GPIOD_OUT, 2) = 0;  // Configuración para rotación en dirección de descenso
+    REGBIT(avr_GPIOD_OUT, 4) = 1;    //activar el motor
+    //configuración para rotación en dirección de descenso
+    REGBIT(avr_GPIOD_OUT, 2) = 0;  
     REGBIT(avr_GPIOD_OUT, 3) = 1;
 }
 
@@ -214,15 +225,16 @@ void subir_barrera(void) {
     int i; 
 
     for (i = 0; i < 3; i++) {
-        clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
+        REGBIT(avr_GPIOD_OUT, 0) = 1;
         _delay_ms(1000); 
-        set_pin(avr_GPIOD_OUT, avr_GPIO_PIN_0);
+        REGBIT(avr_GPIOD_OUT, 0) = 0;
+        _delay_ms(1000);
     }
+    REGBIT(avr_GPIOD_OUT,1) = 1;
 }
 
 void apagar_motor(void) {
-    clear_pin(avr_GPIOD_OUT, avr_GPIO_PIN_4); //apagar el motor
-}
+    REGBIT(avr_GPIOD_OUT, 4) = 0; //apagar el motor
 
 ```
 ### main.c
