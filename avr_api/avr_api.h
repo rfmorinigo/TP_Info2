@@ -49,8 +49,8 @@ typedef struct
 /***********************************************************************************************/
 /***********************************************************************************************/
 // Librerias de perifericos. Comentar la que no se use.
-//#include "avr_Extint.h"	    //Libreria para Interrupciones Externas
-//#include "avr_Timers.h"		//Libreria para control de Timers
+#include "avr_Extint.h"	    //Libreria para Interrupciones Externas
+#include "avr_Timers.h"		//Libreria para control de Timers
 #include "avr_Adc.h"		//Librerias ADC
 //#include "avr_Spi.h"		//Librerias SPI
 //#include "avr_Uart.h"		//Librerias UART

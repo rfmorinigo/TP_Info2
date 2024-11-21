@@ -95,7 +95,7 @@ void init_Systick_timer(SystickInitStructure_AVR Systick_data)
 	 * tcnt = time * F_CPU / prescaler;
 	 *
 	 */
-
+	#define F_CPU 8000000UL
 	switch(Systick_data.timernumber)
 	{
 #if defined_TIM0
