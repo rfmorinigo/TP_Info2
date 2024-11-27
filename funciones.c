@@ -42,7 +42,7 @@ void init_puente(void) {
     systick_conf.time_ms = 1;
     systick_conf.avr_systick_handler = systick_led;
     init_Systick_timer(systick_conf);
-    
+    sei();
     return;
 }
 
