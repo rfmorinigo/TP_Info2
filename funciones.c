@@ -1,63 +1,70 @@
 #include "mylib.h"
 
-int init_puente() {
+volatile unsigned int led_time=0;
+
+void init_puente(void) {
     GpioInitStructure_AVR salida;
     GpioInitStructure_AVR entrada;
-    AdcInitStructure_AVR adc_config;
-    SystickInitStructure_AVR systick_1;
-    //configuración de pines de salida para LEDs y motor
+    //AdcInitStructure_AVR adc_config;
+    SystickInitStructure_AVR systick_conf;
+
+    //configuracion de pines de salida
     salida.port = OUT_PORT;
     salida.modo = avr_GPIO_mode_Output;
     salida.pines = LED_ROJO_PIN | LED_VERDE_PIN | ENA_PIN | IN1_PIN | IN2_PIN;
     init_gpio(salida);
     
-    //condiguracion de pines de entrada para los switch
+    //configuracion de pines de entrada para los switch
     entrada.port = SWITCH_PORT;
     entrada.modo = avr_GPIO_mode_Input; 
     entrada.pines = SWITCH_DOWN_PIN | SWITCH_UP_PIN; //input SUBIR / BAJAR
     init_gpio(entrada);
 
-    // Configuración del ADC
-    adc_config.mode = avr_ADC_MODE_Single_Conversion; // Conversión única
+    /*Configuracion del ADC
+    adc_config.mode = avr_ADC_MODE_Single_Conversion; 
     adc_config.prescaler = avr_ADC_Prescaler_64;      // Divisor del reloj: 64
     adc_config.channel = avr_ADC_canal0;             // Canal ADC0 (PF0)
-    adc_config.resolution = avr_ADC_RES_8Bit;       // Resolución de 8 bits
-    adc_config.reference = avr_ADC_REF_AVcc;         // Referencia AVcc
+    adc_config.resolution = avr_ADC_RES_8Bit;       // mapeo de 8 bits
+    adc_config.reference = avr_ADC_REF_AVcc;         // referencia AVcc
     init_adc(adc_config);
+    /*/
     // Inicializar el ADC
     //if ( init_adc(*adc_config)!= avr_ADC_OK) {
      //   return -1;
     //}
-
+    
+    LED_VERDE = 1; 
+    SWITCH_DOWN = 1; 
+    SWITCH_UP = 1; 
+    
     //configuracion del timer
-    systick_1.timernumber = avr_TIM0;
-    systick_1.time_ms = 1;
-    systick_1.avr_systick_handler = systick_led;
-    init_Systick_timer(systick_1);
-
-    LED_VERDE = 1; //encender led verde
-    SWITCH_DOWN = 1; //pulsador de subir en alto
-    SWITCH_UP = 1; //pulsador de bajar en alto
+    systick_conf.timernumber = avr_TIM0;
+    systick_conf.time_ms = 1;
+    systick_conf.avr_systick_handler = systick_led;
+    init_Systick_timer(systick_conf);
+    
     return;
 }
 
 void bajar_barrera(void) {
-    int i, ciclos=0; 
-    while (ciclos < 5) {
-        if (led_time > 1000) {
+    int ciclos=0; 
+    while (ciclos < 4) {
+        if (led_time > 500) {
             LED_ROJO ^= 1;
             led_time = 0;
             ciclos += 1;
         }
     }
-    LED_VERDE=0; //apagar LED verde
+    LED_VERDE=0; 
+    return;
 }
 
 void activar_motor_subir(void) {
     ENA = 1;   //activar el motor ENA=1
-    // Rotación en dirección de elevación
+    // Rotacion en direccion de elevacion
     IN1 = 1;   // IN1=1
     IN2 = 0; //IN2=0
+    return;
 }
 
 unsigned int leer_sensor(void) {
@@ -66,29 +73,33 @@ unsigned int leer_sensor(void) {
 
 void activar_motor_bajar(void) {
     ENA = 1;    //activar el motor
-    //configuración para rotación en dirección de descenso
+    //configuraciÃ³n para rotacion en direccion de descenso
     IN1 = 0;  
     IN2 = 1;
+    return;
 }
 
 void subir_barrera(void) {
-    int i, ciclos=0;
-    activar_motor_bajar;
-    apagar_motor;
-    while (ciclos < 5) {
-        if (led_time > 1000) {
+    int ciclos=0;
+    activar_motor_bajar();
+    apagar_motor();
+    while (ciclos < 4) {
+        if (led_time > 500) {
             LED_ROJO ^= 1;
             led_time = 0;
             ciclos += 1;
         }
     }
     LED_VERDE=1; //apagar LED verde
+    return;
 }
 
 void apagar_motor(void) {
-    ENA = 0; //apagar el motor
+    ENA = 0; 
+    return;
 }
 
 void systick_led(void) {
     led_time++;
+    return;
 }

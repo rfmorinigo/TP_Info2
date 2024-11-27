@@ -1,7 +1,7 @@
 #ifndef MYLIB_H
 #define MYLIB_H
 #include <avr/io.h>
-#include <avr_api/avr_api.h>
+#include "avr_api/avr_api.h"
 
 #define ALTURA_MAX 127
 #define ALTURA_MIN 0
@@ -9,7 +9,7 @@
 //definiciones para los pulsadores de subir y bajar
 #define SWITCH_PORT avr_GPIO_A
 #define SWITCH_DOWN_PIN avr_GPIO_PIN_1
-#define SWITCH_UP_PIN avr_GPIO_PIN_2
+#define SWITCH_UP_PIN avr_GPIO_PIN_0
 #define SWITCH_UP avr_GPIOA_IN_0
 #define SWITCH_DOWN avr_GPIOA_IN_1
 
@@ -26,8 +26,6 @@
 #define IN2 avr_GPIOD_OUT_3
 #define ENA avr_GPIOD_OUT_4
 
-extern volatile unsigned int led_time=0;
-
 typedef enum {
     espera = 0,
     elevando = 1,
@@ -42,7 +40,7 @@ estados_t *(f_elevado_puente)(void);
 estados_t *(f_bajando_puente)(void);
 
 //prototipos funciones
-int init_puente(void);
+void init_puente(void);
 void subir_barrera(void);
 void bajar_barrera(void);
 void activar_motor_subir(void);
