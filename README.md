@@ -40,7 +40,7 @@ Se utiliza para el proyecto un microcontrolador ATMega 128, un puente H L298 par
 #include <avr/io.h>
 #include "avr_api/avr_api.h"
 
-#define ALTURA_MAX 127
+#define ALTURA_MAX 200
 #define ALTURA_MIN 0
 
 //definiciones para los pulsadores de subir y bajar
@@ -56,13 +56,14 @@ Se utiliza para el proyecto un microcontrolador ATMega 128, un puente H L298 par
 #define LED_ROJO_PIN avr_GPIO_PIN_0
 #define LED_VERDE_PIN avr_GPIO_PIN_1
 #define ENA_PIN avr_GPIO_PIN_5
-#define IN1_PIN avr_GPIO_PIN_3
-#define IN2_PIN avr_GPIO_PIN_4
+#define IN1_PIN avr_GPIO_PIN_2
+#define IN2_PIN avr_GPIO_PIN_3
 #define LED_ROJO avr_GPIOD_OUT_0
 #define LED_VERDE avr_GPIOD_OUT_1
 #define IN1 avr_GPIOD_OUT_2
 #define IN2 avr_GPIOD_OUT_3
-#define ENA avr_GPIOB_OUT_4
+#define ENA avr_GPIOB_OUT_5
+#define ADC0 avr_GPIOF_IN_0
 
 typedef enum {
     espera = 0,
@@ -82,11 +83,12 @@ void init_puente(void);
 void subir_barrera(void);
 void bajar_barrera(void);
 void activar_motor_subir(void);
-unsigned int leer_sensor(void);
+avr_ADC_Value_t leer_sensor(void);
 void activar_motor_bajar(void);
 void systick_led(void);
 void stop(void);
 void run(void);
+void systick_altura(void);
 
 #endif
 
@@ -122,9 +124,10 @@ estados_t f_elevado_puente(void) {
 estados_t f_bajando_puente(void) {
     activar_motor_bajar();
     subir_barrera();
-    
+
     return espera;
 }
+
 ```
 
 ### funciones.c
@@ -132,15 +135,15 @@ estados_t f_bajando_puente(void) {
 ```c
 #include "mylib.h"
 
-volatile unsigned int led_time=0;
+volatile unsigned int led_time=0, high_time=0;
 PWMInitStructure_AVR pwm_config;
 
 void init_puente(void) {
    GpioInitStructure_AVR salida, entrada, pwm, adc;
    AdcInitStructure_AVR adc_config;
-   SystickInitStructure_AVR systick_conf;
+   SystickInitStructure_AVR systick_conf, sensor_conf;
    
-    //configuracion de pines de salida
+   //configuracion de pines de salida
    salida.port = OUT_PORT;
    salida.modo = avr_GPIO_mode_Output;
    salida.pines = LED_ROJO_PIN | LED_VERDE_PIN | ENA_PIN | IN1_PIN | IN2_PIN;
@@ -178,17 +181,22 @@ void init_puente(void) {
    LED_VERDE = 1; 
    SWITCH_DOWN = 1; 
    SWITCH_UP = 1; 
-    
+   ADC0 = 0; 
    //configuracion del timer
    systick_conf.timernumber = avr_TIM0;
    systick_conf.time_ms = 1;
    systick_conf.avr_systick_handler = systick_led;
    init_Systick_timer(systick_conf); 
    
+   sensor_conf.timernumber = avr_TIM2;
+   sensor_conf.time_ms = 10;
+   sensor_conf.avr_systick_handler = systick_altura;
+   init_Systick_timer(sensor_conf);
+   
    pwm_config.timernumber = avr_TIM1;  
    pwm_config.ClockSource = avr_TIM_Clock_NoClockSource;  
    pwm_config.output_Type = avr_TIM1_Out_Clear_OC1A; 
-   pwm_config.dutyA = 32;  
+   pwm_config.dutyA = 64;  
    pwm_config.dutyB = 0;   
    pwm_config.dutyC = 0;  
    init_Fast_PWm_timer(pwm_config);
@@ -210,36 +218,26 @@ void bajar_barrera(void) {
 }
 
 void activar_motor_subir(void) {
-    run();
-    // Rotacion en direccion de elevacion
     IN1 = 1;   // IN1=1
     IN2 = 0; //IN2=0
-    if (leer_sensor == ALTURA_MAX) {
-      stop();
-    }
+    run();
     return;
 }
 
 unsigned int leer_sensor(void) {
-      unsigned l;
-      l=(unsigned int)leer_ADC(avr_ADC_canal0);
-      return l;
+      return leer_ADC(avr_ADC_canal0);
 }
 
 void activar_motor_bajar(void) {
-    run();
    //configuracion para descenso
     IN1 = 0;  
     IN2 = 1;
-    if (leer_sensor == ALTURA_MIN) {
-      stop();
-    }
+    run();
     return;
 }
 
 void subir_barrera(void) {
     int ciclos=0;
-    activar_motor_bajar();
     while (ciclos < 5) {
         if (led_time > 500) {
             LED_ROJO ^= 1;
@@ -247,12 +245,24 @@ void subir_barrera(void) {
             ciclos += 1;
         }
     }
-    LED_VERDE=1; 
+    LED_VERDE=1;
     return;
 }
 
 void systick_led(void) {
     led_time++;
+    return;
+}
+
+void systick_altura(void) {
+    
+    if (IN1==1 && IN2==0 && leer_sensor() >= ALTURA_MAX) {
+      stop();
+    }
+    
+    if (IN1==0 && IN2==1 && leer_sensor() == ALTURA_MIN) {
+      stop();
+    }
     return;
 }
 
