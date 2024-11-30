@@ -3,7 +3,7 @@
 #include <avr/io.h>
 #include "avr_api/avr_api.h"
 
-#define ALTURA_MAX 200
+#define ALTURA_MAX 127U
 #define ALTURA_MIN 0
 
 //definiciones para los pulsadores de subir y bajar
@@ -46,11 +46,10 @@ void init_puente(void);
 void subir_barrera(void);
 void bajar_barrera(void);
 void activar_motor_subir(void);
-avr_ADC_Value_t leer_sensor(void);
+unsigned int leer_sensor(void);
 void activar_motor_bajar(void);
 void systick_led(void);
 void stop(void);
 void run(void);
-void systick_altura(void);
 
 #endif

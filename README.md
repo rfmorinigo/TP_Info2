@@ -40,7 +40,7 @@ Se utiliza para el proyecto un microcontrolador ATMega 128, un puente H L298 par
 #include <avr/io.h>
 #include "avr_api/avr_api.h"
 
-#define ALTURA_MAX 200
+#define ALTURA_MAX 127U
 #define ALTURA_MIN 0
 
 //definiciones para los pulsadores de subir y bajar
@@ -83,15 +83,13 @@ void init_puente(void);
 void subir_barrera(void);
 void bajar_barrera(void);
 void activar_motor_subir(void);
-avr_ADC_Value_t leer_sensor(void);
+unsigned int leer_sensor(void);
 void activar_motor_bajar(void);
 void systick_led(void);
 void stop(void);
 void run(void);
-void systick_altura(void);
 
 #endif
-
 ```
 ### estados.c
 
@@ -100,6 +98,8 @@ void systick_altura(void);
 
 estados_t f_espera_puente(void) {
     if (SWITCH_UP==0) {
+	 bajar_barrera();
+	 activar_motor_subir();
         return elevando;
     } else {
         return espera;
@@ -107,14 +107,18 @@ estados_t f_espera_puente(void) {
 }
 
 estados_t f_elevando_puente(void) {
-       bajar_barrera();
-       activar_motor_subir();
-    return elevado;
+       if (leer_sensor() >= ALTURA_MAX) {
+	 stop();
+	 return elevado;
+       } else {
+	 return elevando;
+       }
 }
 
 estados_t f_elevado_puente(void) {
 
     if (SWITCH_DOWN==0) {
+        activar_motor_bajar();
         return bajando;
     } else {
         return elevado;
@@ -122,12 +126,15 @@ estados_t f_elevado_puente(void) {
 }
 
 estados_t f_bajando_puente(void) {
-    activar_motor_bajar();
-    subir_barrera();
 
-    return espera;
+    if (leer_sensor() <= ALTURA_MIN) {
+      stop();
+      subir_barrera();
+      return espera;
+    } else {
+      return bajando;
+    }
 }
-
 ```
 
 ### funciones.c
@@ -135,13 +142,13 @@ estados_t f_bajando_puente(void) {
 ```c
 #include "mylib.h"
 
-volatile unsigned int led_time=0, high_time=0;
+volatile unsigned int led_time=0;
 PWMInitStructure_AVR pwm_config;
 
 void init_puente(void) {
    GpioInitStructure_AVR salida, entrada, pwm, adc;
    AdcInitStructure_AVR adc_config;
-   SystickInitStructure_AVR systick_conf, sensor_conf;
+   SystickInitStructure_AVR systick_conf;
    
    //configuracion de pines de salida
    salida.port = OUT_PORT;
@@ -156,7 +163,7 @@ void init_puente(void) {
    
    adc.port = avr_GPIO_F;
    adc.modo = avr_GPIO_mode_Input;
-   adc.pines = avr_GPIO_PIN_0;;
+   adc.pines = avr_GPIO_PIN_0;
    init_gpio(adc);
     
    //configuracion de pines de entrada para los switch
@@ -172,31 +179,19 @@ void init_puente(void) {
     adc_config.resolution = avr_ADC_RES_8Bit;       // mapeo de 8 bits
     adc_config.reference = avr_ADC_REF_AVcc;         // referencia AVcc
     init_adc(adc_config);
-    /*/
-     Inicializar el ADC
-      if ( init_adc(*adc_config)!= avr_ADC_OK) {
-        return -1;
-    }
-    */
+
+    
    LED_VERDE = 1; 
-   SWITCH_DOWN = 1; 
-   SWITCH_UP = 1; 
-   ADC0 = 0; 
    //configuracion del timer
    systick_conf.timernumber = avr_TIM0;
    systick_conf.time_ms = 1;
    systick_conf.avr_systick_handler = systick_led;
    init_Systick_timer(systick_conf); 
-   
-   sensor_conf.timernumber = avr_TIM2;
-   sensor_conf.time_ms = 10;
-   sensor_conf.avr_systick_handler = systick_altura;
-   init_Systick_timer(sensor_conf);
-   
+    
    pwm_config.timernumber = avr_TIM1;  
    pwm_config.ClockSource = avr_TIM_Clock_NoClockSource;  
    pwm_config.output_Type = avr_TIM1_Out_Clear_OC1A; 
-   pwm_config.dutyA = 64;  
+   pwm_config.dutyA = 45;  
    pwm_config.dutyB = 0;   
    pwm_config.dutyC = 0;  
    init_Fast_PWm_timer(pwm_config);
@@ -254,26 +249,16 @@ void systick_led(void) {
     return;
 }
 
-void systick_altura(void) {
-    
-    if (IN1==1 && IN2==0 && leer_sensor() >= ALTURA_MAX) {
-      stop();
-    }
-    
-    if (IN1==0 && IN2==1 && leer_sensor() == ALTURA_MIN) {
-      stop();
-    }
-    return;
-}
-
 void stop(void) { 
+   IN1=0;
+   IN2=0;
    pwm_config.ClockSource = avr_TIM_Clock_NoClockSource;  
    init_Fast_PWm_timer(pwm_config);
    sei();
    return;
 }
 
-void run (void) {
+void run(void) {
    pwm_config.ClockSource = avr_TIM_Clock_SystemClockPrescalingx64;
    init_Fast_PWm_timer(pwm_config);
    sei();
@@ -296,3 +281,6 @@ int main() {
  return 0;
 }
 ```
+
+## Funcionamiento del puente levadizo (video)
+[![Título del Video](https://youtu.be/T_--LmrTiuc)]
