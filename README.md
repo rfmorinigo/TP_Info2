@@ -283,4 +283,4 @@ int main() {
 ```
 
 ## Funcionamiento del puente levadizo (video)
-[![Título del Video](https://youtu.be/T_--LmrTiuc)]
+[Puente Levadizo en Proteus](https://youtu.be/T_--LmrTiuc)
